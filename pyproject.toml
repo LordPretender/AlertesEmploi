@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alertes-emploi"
+version = "0.1.0"
+description = "Recherche et tri d'offres d'emploi basés sur JobSpy"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-m 'not reseau'"
+markers = ["reseau: appelle un vrai site (lancé à la demande avec -m reseau)"]

@@ -35,6 +35,46 @@ _ENTETES = {"User-Agent": "Mozilla/5.0 (compatible; AlertesEmploi)"}
 _CLE_DESCRIPTIF = "descriptif"
 _CLE_LIEU_TRAVAIL = "lieuTravail"
 _CLE_COMMUNE_TRAVAIL = "libelleCommuneLieuTravail"
+_CLE_ETABLISSEMENT = "etablissement"
+_CLE_EXPERIENCE = "experienceProfil"
+_CLE_DUREE_EXPERIENCE = "experience"
+_CLE_EXPERIENCE_INDISPENSABLE = "estUneExperienceIndispensable"
+_CLE_CONDITIONS = "conditionTravailPoste"
+_PREFIXE_LIBELLE = "libelle"
+_PREFIXE_INDISPENSABLE = "est"
+_SUFFIXE_INDISPENSABLE = "Indispensable"
+
+# Description en sections : (libellé affiché, clé du JSON) ; une clé de liste donne ses éléments séparés par « ; ».
+_CRITERES_OFFRE = (
+    ("Contrat", "syntheseContrat"),
+    ("Salaire", "salaire"),
+    ("Horaires", "syntheseHoraire"),
+    ("Déplacements", "deplacement"),
+    ("Qualification", "qualification"),
+    ("Public visé", "publicCible"),
+    ("Secteur d'activité", "syntheseSecteurActivite"),
+    ("Avantages", "listeAvantages"),
+)
+_PROFIL_SOUHAITE = (
+    ("Formations", "listeFormation"),
+    ("Compétences", "listeCompetence"),
+    ("Savoir-être", "listeSavoirEtre"),
+    ("Langues", "listeLangue"),
+    ("Permis", "listePermis"),
+)
+_EMPLOYEUR = (
+    ("Enseigne", "libelleEnseigne"),
+    ("Secteur d'activité", "syntheseSecteurActivite"),
+    ("Effectif", "effectif"),
+    ("Site web", "urlEntreprise"),
+)
+_CLES_CONDITIONS = (("Conditions de travail", "libelleConditionTravail"), ("Précisions", "commentaireConditionTravail"), ("Type d'horaires", "listeLibelleTypeHoraire"), ("Exercice des horaires", "listeLibelleConditionExerciceHoraire"))
+_PRESENTATION = "Présentation"
+_CHAMP_PRESENTATION_ENTREPRISE = (_PRESENTATION, "descriptionEntreprise"),
+_CHAMP_PRESENTATION_ETABLISSEMENT = (_PRESENTATION, "descriptionEtablissement"),
+_NON_DISPONIBLE = "non disponible"
+_INDISPENSABLE = " (indispensable)"
+_SEPARATEUR_ELEMENTS = " ; "
 
 _BLOC = re.compile(r'<li data-id-offre="(\w+)" class="result">(.*?)</li>', re.S)
 _TITRE = re.compile(r'<span class="media-heading-title">(.*?)</span>', re.S)
@@ -104,6 +144,57 @@ class _Client:
             raise
 
 
+def _texte_json(valeur: object) -> str:
+    """Valeur JSON textuelle nettoyée ; vide si absente, d'un autre type ou « Non disponible »."""
+    if isinstance(valeur, str) and valeur.strip().lower() != _NON_DISPONIBLE:
+        return valeur.strip()
+    return ""
+
+
+def _element(element: object) -> str:
+    """Élément d'une liste du descriptif : texte simple, ou objet dont le premier champ `libelle…` est le texte (suffixe si un champ `est…Indispensable` est vrai)."""
+    if isinstance(element, dict):
+        libelle = next((_texte_json(valeur) for cle, valeur in element.items() if cle.startswith(_PREFIXE_LIBELLE)), "")
+        indispensable = any(valeur is True for cle, valeur in element.items() if cle.startswith(_PREFIXE_INDISPENSABLE) and cle.endswith(_SUFFIXE_INDISPENSABLE))
+        return libelle + _INDISPENSABLE if libelle and indispensable else libelle
+    return _texte_json(element)
+
+
+def _valeur(valeur: object) -> str:
+    """Texte d'une valeur du descriptif : texte, ou liste d'éléments séparés par « ; »."""
+    if isinstance(valeur, list):
+        return _SEPARATEUR_ELEMENTS.join(filter(None, map(_element, valeur)))
+    return _texte_json(valeur)
+
+
+def _lignes(source: object, champs: tuple[tuple[str, str], ...]) -> list[str]:
+    """Lignes « Libellé : valeur » des champs non vides de `source` (un objet JSON) ; aucune si `source` n'en est pas un."""
+    if not isinstance(source, dict):
+        return []
+    return [f"{libelle} : {valeur}" for libelle, cle in champs if (valeur := _valeur(source.get(cle)))]
+
+
+def _section(titre: str, lignes: list[str]) -> str:
+    return f"{titre}\n" + "\n".join(lignes) if lignes else ""
+
+
+def _description(detail: dict) -> str:
+    """Description complète d'une offre : descriptif, puis sections « Critères de l'offre », « Profil souhaité » et « Employeur » (les champs vides sont omis)."""
+    criteres = _lignes(detail, _CRITERES_OFFRE) + _lignes(detail.get(_CLE_CONDITIONS), _CLES_CONDITIONS)
+    experience = detail.get(_CLE_EXPERIENCE)
+    profil = []
+    if isinstance(experience, dict) and (duree := _texte_json(experience.get(_CLE_DUREE_EXPERIENCE))):
+        profil.append(f"Expérience : {duree}{_INDISPENSABLE if experience.get(_CLE_EXPERIENCE_INDISPENSABLE) is True else ''}")
+    profil += _lignes(detail, _PROFIL_SOUHAITE)
+    etablissement = detail.get(_CLE_ETABLISSEMENT)
+    employeur = _lignes(etablissement, _EMPLOYEUR)
+    # Les deux présentations sont souvent identiques : on ne garde qu'un exemplaire.
+    presentations = _lignes(detail, _CHAMP_PRESENTATION_ENTREPRISE) + _lignes(etablissement, _CHAMP_PRESENTATION_ETABLISSEMENT)
+    employeur += dict.fromkeys(presentations)
+    parties = [_texte_json(detail.get(_CLE_DESCRIPTIF)), _section("Critères de l'offre", criteres), _section("Profil souhaité", profil), _section("Employeur", employeur)]
+    return "\n\n".join(filter(None, parties))
+
+
 def _descriptif(client: _Client, annonce: _Annonce) -> tuple[str, str]:
     """Description et commune de l'offre d'après son descriptif JSON ; à défaut (429, réseau, JSON inattendu), l'extrait de la liste et aucune commune.
 
@@ -124,7 +215,7 @@ def _descriptif(client: _Client, annonce: _Annonce) -> tuple[str, str]:
         return annonce.extrait, ""
     lieu_travail = detail.get(_CLE_LIEU_TRAVAIL)
     commune = lieu_travail.get(_CLE_COMMUNE_TRAVAIL) if isinstance(lieu_travail, dict) else ""
-    return detail.get(_CLE_DESCRIPTIF) or annonce.extrait, commune or ""
+    return _description(detail) or annonce.extrait, commune or ""
 
 
 def _url_page(code: str, rayon_km: int, debut: int) -> str:

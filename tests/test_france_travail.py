@@ -77,6 +77,40 @@ def test_extraction_nominale(reseau):
     assert "lieux=13055" in demandees[0] and "rayon=20" in demandees[0] and "tri=1" in demandees[0] and "motsCles" not in demandees[0]
 
 
+def test_description_en_trois_sections(reseau):
+    routes, _ = reseau
+    routes["range=0-19"] = _page(_annonce("A1", "Dev"))
+    routes["offre/A1"] = json.dumps(
+        {
+            "descriptif": "Le poste.",
+            "syntheseContrat": "CDI",
+            "salaire": "Mensuel de 2000 Euros",
+            "syntheseHoraire": "Non disponible",
+            "conditionTravailPoste": {"listeLibelleTypeHoraire": ["35H/semaine", "Travail en journée"]},
+            "experienceProfil": {"experience": "2 An(s)", "estUneExperienceIndispensable": True},
+            "listeFormation": [{"libelleFormation": "Bac+2", "estUneFormationIndispensable": False}],
+            "listeCompetence": [{"libelleCompetence": "Classer", "estUneCompetenceIndispensable": True}, {"libelleCompetence": "Planifier"}],
+            "listeSavoirEtre": ["Autonomie"],
+            "listePermis": [{"libellePermis": "B", "estUnPermisIndispensable": True}],
+            "descriptionEntreprise": "Une belle société.",
+            "etablissement": {"libelleEnseigne": "ACME", "descriptionEtablissement": "Une belle société.", "effectif": "Non disponible", "urlEntreprise": "https://acme.example"},
+        }
+    )
+    assert _rechercher(termes="")[0].description == (
+        "Le poste.\n\n"
+        "Critères de l'offre\nContrat : CDI\nSalaire : Mensuel de 2000 Euros\nType d'horaires : 35H/semaine ; Travail en journée\n\n"
+        "Profil souhaité\nExpérience : 2 An(s) (indispensable)\nFormations : Bac+2\nCompétences : Classer (indispensable) ; Planifier\nSavoir-être : Autonomie\nPermis : B (indispensable)\n\n"
+        "Employeur\nEnseigne : ACME\nSite web : https://acme.example\nPrésentation : Une belle société."
+    )
+
+
+def test_descriptif_sans_donnees_utiles_garde_l_extrait(reseau):
+    routes, _ = reseau
+    routes["range=0-19"] = _page(_annonce("A1", "Dev", extrait="python"))
+    routes["offre/A1"] = json.dumps({"descriptif": "", "listeFormation": None, "etablissement": {"effectif": "Non disponible"}, "listeLangue": [{}, 3]})
+    assert [o.description for o in _rechercher()] == ["python"]
+
+
 def test_filtre_sur_titre_et_description_complete(reseau):
     routes, _ = reseau
     routes["range=0-19"] = _page(_annonce("A1", "Chauffeur"), _annonce("A2", "Secrétaire"), _annonce("A3", "Boulanger"))

@@ -5,6 +5,7 @@ import time
 from datetime import date, datetime, timedelta
 
 import pytest
+from outils import PRIORITE_SITES_PAR_DEFAUT
 
 from alertes_emploi.interface import serveur
 from alertes_emploi.modele import Offre
@@ -1053,7 +1054,7 @@ def test_get_page_prerempli_depuis_les_parametres_globaux_de_la_base(lancer_serv
 def test_page_propose_le_champ_priorite_des_sites_prerempli():
     par_defaut = serveur.construire_page([], ["a"])
     assert 'id="g-priorite"' in par_defaut
-    assert '"priorite_sites": ["linkedin", "indeed", "hellowork", "glassdoor"]' in par_defaut
+    assert f'"priorite_sites": {json.dumps(list(PRIORITE_SITES_PAR_DEFAUT))}' in par_defaut
     perso = serveur.construire_page([], ["a"], globaux=ParametresGlobaux(priorite_sites=("glassdoor", "<b>")))
     assert '"priorite_sites": ["glassdoor", "\\u003cb>"]' in perso
     assert "<b>" not in perso.split('id="globaux-data"')[1].split("</script>")[0]
@@ -1075,7 +1076,7 @@ def test_post_global_priorite_des_sites_invalide_400_sans_effet(lancer_serveur, 
 
 def test_page_propose_une_case_par_site_dont_hellowork():
     page = serveur.construire_page([], ["a"])
-    for site in ("indeed", "linkedin", "glassdoor", "google", "hellowork"):
+    for site in ("indeed", "linkedin", "glassdoor", "google", "hellowork", "francetravail", "apec", "lesjeudis"):
         assert f'name="site" value="{site}"' in page
 
 

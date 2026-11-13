@@ -227,7 +227,10 @@ __LIGNES__
 <label><input type="checkbox" name="site" value="linkedin"> linkedin</label>
 <label><input type="checkbox" name="site" value="glassdoor"> glassdoor</label>
 <label><input type="checkbox" name="site" value="google"> google</label>
-<label><input type="checkbox" name="site" value="hellowork"> hellowork</label></p>
+<label><input type="checkbox" name="site" value="hellowork"> hellowork</label>
+<label><input type="checkbox" name="site" value="francetravail"> francetravail</label>
+<label><input type="checkbox" name="site" value="apec"> apec</label>
+<label><input type="checkbox" name="site" value="lesjeudis"> lesjeudis</label></p>
 <p><label>Type de contrat <select id="p-contrat"><option value="">indifférent</option><option>fulltime</option><option>parttime</option><option>contract</option><option>internship</option></select></label>
 <label>Nombre de résultats <input id="p-nb" class="court" type="number" min="1"></label></p>
 <p><label><input id="p-exiger" type="checkbox"> Exiger un terme de recherche dans l'offre</label></p>

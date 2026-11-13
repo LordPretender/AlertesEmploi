@@ -92,7 +92,7 @@ class ParametresGlobaux:
 
     mots_exclus: tuple[str, ...] = ()
     villes_exclues: tuple[str, ...] = ()
-    priorite_sites: tuple[str, ...] = ("linkedin", "indeed", "hellowork", "glassdoor")
+    priorite_sites: tuple[str, ...] = ("francetravail", "apec", "lesjeudis", "hellowork", "indeed", "linkedin", "glassdoor")
     recherche_auto_demarrage: bool = True
     delai_recherche_auto_minutes: int = 60
 

@@ -1,4 +1,5 @@
 import pytest
+from outils import PRIORITE_SITES_PAR_DEFAUT
 
 from alertes_emploi.profils.chargeur import (
     ParametresGlobaux,
@@ -85,7 +86,7 @@ def test_globaux_invalides_refuses(donnees):
 
 
 def test_globaux_priorite_sites_par_defaut():
-    assert globaux_depuis_donnees({"mots_exclus": ["stage"]}).priorite_sites == ("linkedin", "indeed", "hellowork", "glassdoor")
+    assert globaux_depuis_donnees({"mots_exclus": ["stage"]}).priorite_sites == PRIORITE_SITES_PAR_DEFAUT
 
 
 def test_globaux_priorite_sites_personnalisee_lue():

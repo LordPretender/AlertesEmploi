@@ -15,6 +15,7 @@ from jobspy.util import RequestsRotating, create_session
 
 from alertes_emploi import NOM_JOURNAL, NOM_JOURNAL_JOBSPY, SOURCE_LINKEDIN
 from alertes_emploi.modele import Offre
+from alertes_emploi.sources.registre import SOURCES_NATIVES, SourceBloquee
 
 _journal = logging.getLogger(NOM_JOURNAL)
 
@@ -54,7 +55,8 @@ class RechercheBloquee(Exception):
         )
 
 
-_MARQUEUR_BLOCAGE = re.compile(r"\b429\b|blocked: use a proxy")
+_SITES_JOBSPY = frozenset(site.value for site in Site)
+_MARQUEUR_BLOCAGE =re.compile(r"\b429\b|blocked: use a proxy")
 _ID_OFFRE_JOURNAL = re.compile(r"^job (\d+):")
 _ID_OFFRE_URL = re.compile(r"/jobs/view/(\d+)")
 
@@ -91,18 +93,22 @@ class _DetecteurBlocage(logging.Handler):
             if record.name.startswith("jobspy."):
                 self.site = record.name.split(".")[1]
 
+
 def _journaliser_blocage(detecteur: _DetecteurBlocage, profil: str) -> None:
     """Écrit au journal de l'application la synthèse d'une recherche bloquée (aucune ligne quand tout s'est bien passé).
 
     Seule l'erreur 429 sur la page de recherche (qui annule la recherche) est journalisée ici ; celle d'une page d'offre l'est par
     recherche.lancer_recherche, seule à connaître le nombre de descriptions réellement à récupérer en base.
     """
-    if not detecteur.sur_recherche:
-        return
+    if detecteur.sur_recherche:
+        _journaliser_blocage_recherche(detecteur.site, profil)
+
+
+def _journaliser_blocage_recherche(site: str | None, profil: str) -> None:
+    """Ligne de journal d'une recherche annulée par un 429 sur la page de recherche d'un site (JobSpy ou natif)."""
     nom = f"profil « {profil} », " if profil else ""
-    site = detecteur.site or "site inconnu"
     _journal.warning(
-        "Blocage %s%s : erreur 429 sur la page de recherche, recherche annulée, aucune offre enregistrée.", nom, site
+        "Blocage %s%s : erreur 429 sur la page de recherche, recherche annulée, aucune offre enregistrée.", nom, site or "site inconnu"
     )
 
 
@@ -204,6 +210,21 @@ def recuperer_description_linkedin(url: str) -> DescriptionRecuperee:
     return DescriptionRecuperee(_en_texte(details.get("description")), detecteur.bloque)
 
 
+def _rechercher_natives(sites: list[str], profil: str, *criteres) -> list[Offre]:
+    """Offres des adaptateurs natifs des sites donnés ; un blocage de l'un annule tout (RechercheBloquee), comme pour JobSpy.
+
+    criteres : arguments transmis tels quels à chaque adaptateur (signature commune du registre).
+    """
+    offres: list[Offre] = []
+    for site in sites:
+        try:
+            offres.extend(SOURCES_NATIVES[site](*criteres))
+        except SourceBloquee as blocage:
+            _journaliser_blocage_recherche(blocage.site, profil)
+            raise RechercheBloquee(blocage.site) from blocage
+    return offres
+
+
 def rechercher(
     termes: str,
     lieu: str,
@@ -228,22 +249,31 @@ def rechercher(
     Un 429 sur la page de recherche lève RechercheBloquee et les résultats partiels sont jetés.
     Un 429 sur la page d'une offre ne l'annule pas : l'offre revient sans description, avec description_bloquee vrai, et les pages des offres suivantes ne sont plus demandées.
     """
-    with _surveiller_blocage() as detecteur, _limiter_pages_offre(detecteur, ids_connus) as ids_offres_lues:
-        jobs = scrape_jobs(
-            site_name=list(sites),
-            search_term=termes,
-            location=lieu,
-            distance=rayon_km,
-            hours_old=anciennete_heures,
-            results_wanted=nombre_resultats,
-            country_indeed=pays_indeed,
-            job_type=type_contrat,
-            is_remote=teletravail is True,
-            fetch_description=recuperer_descriptions,  # Seul LinkedIn le lit : une requête de plus par offre pour sa description complète.
-        )
-    offres = convertir(jobs, ids_offres_lues)
-    if detecteur.bloque:
-        _journaliser_blocage(detecteur, profil)
-        if detecteur.sur_recherche:
-            raise RechercheBloquee(detecteur.site)
-    return offres
+    sites = list(sites)
+    # Un site ni natif ni connu de JobSpy (case livrée avant son adaptateur) ferait lever la validation de scrape_jobs : on l'ignore.
+    sites_sans_source = [site for site in sites if site not in SOURCES_NATIVES and site not in _SITES_JOBSPY]
+    if sites_sans_source:
+        _journal.warning("Sites ignorés, aucune source disponible : %s.", ", ".join(sites_sans_source))
+    sites_jobspy = [site for site in sites if site in _SITES_JOBSPY and site not in SOURCES_NATIVES]
+    offres: list[Offre] = []
+    if sites_jobspy:
+        with _surveiller_blocage() as detecteur, _limiter_pages_offre(detecteur, ids_connus) as ids_offres_lues:
+            jobs = scrape_jobs(
+                site_name=sites_jobspy,
+                search_term=termes,
+                location=lieu,
+                distance=rayon_km,
+                hours_old=anciennete_heures,
+                results_wanted=nombre_resultats,
+                country_indeed=pays_indeed,
+                job_type=type_contrat,
+                is_remote=teletravail is True,
+                fetch_description=recuperer_descriptions,  # Seul LinkedIn le lit : une requête de plus par offre pour sa description complète.
+            )
+        offres = convertir(jobs, ids_offres_lues)
+        if detecteur.bloque:
+            _journaliser_blocage(detecteur, profil)
+            if detecteur.sur_recherche:
+                raise RechercheBloquee(detecteur.site)
+    sites_natifs = [site for site in sites if site in SOURCES_NATIVES]
+    return offres + _rechercher_natives(sites_natifs, profil, termes, lieu, rayon_km, anciennete_heures, nombre_resultats, type_contrat, teletravail)

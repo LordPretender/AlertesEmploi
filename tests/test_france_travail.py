@@ -1,24 +1,8 @@
 import json
-from urllib.error import HTTPError
-
 import pytest
 
 from alertes_emploi.sources import france_travail
 from alertes_emploi.sources.registre import SOURCES_NATIVES, SourceBloquee
-
-
-class _Reponse:
-    def __init__(self, corps: str) -> None:
-        self._corps = corps
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        return False
-
-    def read(self) -> bytes:
-        return self._corps.encode("utf-8")
 
 
 def _annonce(identifiant, titre, societe="ACME -", lieu="13 - MARSEILLE 12", extrait="extrait"):
@@ -39,25 +23,10 @@ def _detail(descriptif: str, commune: str = "Marseille") -> str:
 
 
 @pytest.fixture
-def reseau(monkeypatch):
-    """Faux serveur : routes = {fragment d'URL: corps (str) ou code d'erreur HTTP (int)} ; renvoie la liste des URL demandées."""
-    routes: dict[str, str | int] = {}
-    demandees: list[str] = []
-
-    def faux_urlopen(requete, timeout):
-        url = requete.full_url
-        demandees.append(url)
-        for fragment, retour in routes.items():
-            if fragment in url:
-                if isinstance(retour, int):
-                    raise HTTPError(url, retour, "erreur", {}, None)
-                return _Reponse(retour)
-        raise HTTPError(url, 404, "inconnue", {}, None)
-
-    monkeypatch.setattr(france_travail, "urlopen", faux_urlopen)
-    monkeypatch.setattr(france_travail.time, "sleep", lambda secondes: None)
+def reseau(reseau, monkeypatch):
+    """Faux serveur de conftest.py, plus la table des communes simulée."""
     monkeypatch.setattr(france_travail, "code_insee", lambda lieu: "13055" if "marseille" in lieu.lower() else None)
-    return routes, demandees
+    return reseau
 
 
 def _rechercher(termes="python", lieu="Marseille", rayon_km=20, nombre_resultats=20):

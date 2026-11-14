@@ -24,7 +24,15 @@ def _france_travail(*criteres) -> list[Offre]:
     return france_travail.rechercher(*criteres)
 
 
+def _lesjeudis(*criteres) -> list[Offre]:
+    """Import différé : lesjeudis importe SourceBloquee de ce module."""
+    from alertes_emploi.sources import lesjeudis
+
+    return lesjeudis.rechercher(*criteres)
+
+
 SITE_FRANCE_TRAVAIL = "francetravail"
+SITE_LESJEUDIS = "lesjeudis"
 
 # Clé = valeur de Offre.source, aussi cochée dans le formulaire et saisie dans priorite_sites.
-SOURCES_NATIVES: dict[str, AdaptateurNatif] = {SITE_FRANCE_TRAVAIL: _france_travail}
+SOURCES_NATIVES: dict[str, AdaptateurNatif] = {SITE_FRANCE_TRAVAIL: _france_travail, SITE_LESJEUDIS: _lesjeudis}

@@ -8,22 +8,18 @@ Seuls le lieu et le rayon du profil sont gérés ; ancienneté, type de contrat 
 import json
 import logging
 import re
-import time
 from dataclasses import dataclass
 from html import unescape
-from urllib.error import HTTPError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
 from alertes_emploi import NOM_JOURNAL
 from alertes_emploi.modele import Offre
 from alertes_emploi.sources.communes import code_insee, normaliser
+from alertes_emploi.sources.commun import ClientHttp, texte_json
 from alertes_emploi.sources.registre import SITE_FRANCE_TRAVAIL, SourceBloquee
 
 SITE = SITE_FRANCE_TRAVAIL
 OFFRES_PAR_PAGE = 20
-PAUSE_SECONDES = 1.0
-DELAI_SECONDES = 20
 
 _BASE = "https://candidat.francetravail.fr"
 _URL_RECHERCHE = f"{_BASE}/offres/recherche"
@@ -126,31 +122,18 @@ def _contient(terme: str, texte: str) -> bool:
     return not voulu or re.search(rf"\b{re.escape(voulu)}\b", normaliser(texte)) is not None
 
 
-class _Client:
-    """Requêtes GET espacées d'une pause (aucune avant la première) ; un 429 lève SourceBloquee."""
+class _Client(ClientHttp):
+    """Client du site, qui retient en plus qu'un 429 a coupé les descriptifs."""
 
     def __init__(self) -> None:
-        self._premiere = True
+        super().__init__(SITE, _ENTETES)
         self.descriptifs_bloques = False
-
-    def lire(self, url: str) -> str:
-        if not self._premiere:
-            time.sleep(PAUSE_SECONDES)
-        self._premiere = False
-        try:
-            with urlopen(Request(url, headers=_ENTETES), timeout=DELAI_SECONDES) as reponse:
-                return reponse.read().decode("utf-8")
-        except HTTPError as erreur:
-            if erreur.code == 429:
-                raise SourceBloquee(SITE) from erreur
-            raise
 
 
 def _texte_json(valeur: object) -> str:
     """Valeur JSON textuelle nettoyée ; vide si absente, d'un autre type ou « Non disponible »."""
-    if isinstance(valeur, str) and valeur.strip().lower() != _NON_DISPONIBLE:
-        return valeur.strip()
-    return ""
+    texte = texte_json(valeur)
+    return "" if texte.lower() == _NON_DISPONIBLE else texte
 
 
 def _element(element: object) -> str:

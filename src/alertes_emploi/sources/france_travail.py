@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from alertes_emploi import NOM_JOURNAL
 from alertes_emploi.modele import Offre
 from alertes_emploi.sources.communes import code_insee, normaliser
-from alertes_emploi.sources.commun import ClientHttp, texte_json
+from alertes_emploi.sources.commun import SEPARATEUR_ELEMENTS, ClientHttp, paragraphes, puce, section, texte_json
 from alertes_emploi.sources.registre import SITE_FRANCE_TRAVAIL, SourceBloquee
 
 SITE = SITE_FRANCE_TRAVAIL
@@ -70,9 +70,6 @@ _CHAMP_PRESENTATION_ENTREPRISE = (_PRESENTATION, "descriptionEntreprise"),
 _CHAMP_PRESENTATION_ETABLISSEMENT = (_PRESENTATION, "descriptionEtablissement"),
 _NON_DISPONIBLE = "non disponible"
 _INDISPENSABLE = " (indispensable)"
-_SEPARATEUR_ELEMENTS = " ; "
-_GABARIT_PUCE = "- **{libelle}** : {valeur}"
-_GABARIT_TITRE = "## {titre}"
 
 _BLOC = re.compile(r'<li data-id-offre="(\w+)" class="result">(.*?)</li>', re.S)
 _TITRE = re.compile(r'<span class="media-heading-title">(.*?)</span>', re.S)
@@ -148,7 +145,7 @@ def _element(element: object) -> str:
 def _valeur(valeur: object) -> str:
     """Texte d'une valeur du descriptif : texte, ou liste d'éléments séparés par « ; »."""
     if isinstance(valeur, list):
-        return _SEPARATEUR_ELEMENTS.join(filter(None, map(_element, valeur)))
+        return SEPARATEUR_ELEMENTS.join(filter(None, map(_element, valeur)))
     return _texte_json(valeur)
 
 
@@ -156,17 +153,7 @@ def _lignes(source: object, champs: tuple[tuple[str, str], ...]) -> list[str]:
     """Puces Markdown `- **Libellé** : valeur` des champs non vides de `source` (un objet JSON) ; aucune si `source` n'en est pas un."""
     if not isinstance(source, dict):
         return []
-    return [_puce(libelle, valeur) for libelle, cle in champs if (valeur := _valeur(source.get(cle)))]
-
-
-def _puce(libelle: str, valeur: str) -> str:
-    """Ligne Markdown « - **Libellé** : valeur » (la page des offres met le libellé en gras)."""
-    return _GABARIT_PUCE.format(libelle=libelle, valeur=valeur)
-
-
-def _section(titre: str, lignes: list[str]) -> str:
-    """Section Markdown : titre `## …` puis une puce par ligne ; vide si aucune ligne."""
-    return _GABARIT_TITRE.format(titre=titre) + "\n" + "\n".join(lignes) if lignes else ""
+    return [puce(libelle, valeur) for libelle, cle in champs if (valeur := _valeur(source.get(cle)))]
 
 
 def _description(detail: dict) -> str:
@@ -175,15 +162,14 @@ def _description(detail: dict) -> str:
     experience = detail.get(_CLE_EXPERIENCE)
     profil = []
     if isinstance(experience, dict) and (duree := _texte_json(experience.get(_CLE_DUREE_EXPERIENCE))):
-        profil.append(_puce("Expérience", f"{duree}{_INDISPENSABLE if experience.get(_CLE_EXPERIENCE_INDISPENSABLE) is True else ''}"))
+        profil.append(puce("Expérience", f"{duree}{_INDISPENSABLE if experience.get(_CLE_EXPERIENCE_INDISPENSABLE) is True else ''}"))
     profil += _lignes(detail, _PROFIL_SOUHAITE)
     etablissement = detail.get(_CLE_ETABLISSEMENT)
     employeur = _lignes(etablissement, _EMPLOYEUR)
     # Les deux présentations sont souvent identiques : on ne garde qu'un exemplaire.
     presentations = _lignes(detail, _CHAMP_PRESENTATION_ENTREPRISE) + _lignes(etablissement, _CHAMP_PRESENTATION_ETABLISSEMENT)
     employeur += dict.fromkeys(presentations)
-    parties = [_texte_json(detail.get(_CLE_DESCRIPTIF)), _section("Critères de l'offre", criteres), _section("Profil souhaité", profil), _section("Employeur", employeur)]
-    return "\n\n".join(filter(None, parties))
+    return paragraphes([_texte_json(detail.get(_CLE_DESCRIPTIF)), section("Critères de l'offre", criteres), section("Profil souhaité", profil), section("Employeur", employeur)])
 
 
 def _descriptif(client: _Client, annonce: _Annonce) -> tuple[str, str]:

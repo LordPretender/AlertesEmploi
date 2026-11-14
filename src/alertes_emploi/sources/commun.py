@@ -1,6 +1,7 @@
-"""Briques communes aux adaptateurs natifs : client GET espacé d'une pause (un 429 lève SourceBloquee) et lecture d'une valeur JSON textuelle."""
+"""Briques communes aux adaptateurs natifs : client GET espacé d'une pause (un 429 lève SourceBloquee), lecture d'une valeur JSON textuelle et assemblage de la description en Markdown (puces, sections)."""
 
 import time
+from collections.abc import Iterable
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -8,6 +9,11 @@ from alertes_emploi.sources.registre import SourceBloquee
 
 PAUSE_SECONDES = 1.0
 DELAI_SECONDES = 20
+SEPARATEUR_ELEMENTS = " ; "
+SEPARATEUR_LIGNES = "\n"
+SEPARATEUR_PARAGRAPHES = "\n\n"
+GABARIT_PUCE = "- **{libelle}** : {valeur}"
+GABARIT_SECTION = "## {titre}\n{corps}"
 _CODE_TROP_DE_REQUETES = 429
 
 
@@ -30,6 +36,22 @@ class ClientHttp:
             if erreur.code == _CODE_TROP_DE_REQUETES:
                 raise SourceBloquee(self._site) from erreur
             raise
+
+
+def puce(libelle: str, valeur: str) -> str:
+    """Ligne Markdown « - **Libellé** : valeur » (les pages des sites mettent le libellé en gras)."""
+    return GABARIT_PUCE.format(libelle=libelle, valeur=valeur)
+
+
+def section(titre: str, lignes: list[str]) -> str:
+    """Section Markdown : titre `## …` puis ses lignes non vides ; vide si elles le sont toutes."""
+    corps = SEPARATEUR_LIGNES.join(filter(None, lignes))
+    return GABARIT_SECTION.format(titre=titre, corps=corps) if corps else ""
+
+
+def paragraphes(parties: Iterable[str]) -> str:
+    """Parties non vides séparées par une ligne vide."""
+    return SEPARATEUR_PARAGRAPHES.join(filter(None, parties))
 
 
 def texte_json(valeur: object) -> str:

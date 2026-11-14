@@ -98,9 +98,9 @@ def test_description_en_trois_sections(reseau):
     )
     assert _rechercher(termes="")[0].description == (
         "Le poste.\n\n"
-        "Critères de l'offre\nContrat : CDI\nSalaire : Mensuel de 2000 Euros\nType d'horaires : 35H/semaine ; Travail en journée\n\n"
-        "Profil souhaité\nExpérience : 2 An(s) (indispensable)\nFormations : Bac+2\nCompétences : Classer (indispensable) ; Planifier\nSavoir-être : Autonomie\nPermis : B (indispensable)\n\n"
-        "Employeur\nEnseigne : ACME\nSite web : https://acme.example\nPrésentation : Une belle société."
+        "## Critères de l'offre\n- **Contrat** : CDI\n- **Salaire** : Mensuel de 2000 Euros\n- **Type d'horaires** : 35H/semaine ; Travail en journée\n\n"
+        "## Profil souhaité\n- **Expérience** : 2 An(s) (indispensable)\n- **Formations** : Bac+2\n- **Compétences** : Classer (indispensable) ; Planifier\n- **Savoir-être** : Autonomie\n- **Permis** : B (indispensable)\n\n"
+        "## Employeur\n- **Enseigne** : ACME\n- **Site web** : https://acme.example\n- **Présentation** : Une belle société."
     )
 
 

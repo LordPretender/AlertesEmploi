@@ -75,6 +75,8 @@ _CHAMP_PRESENTATION_ETABLISSEMENT = (_PRESENTATION, "descriptionEtablissement"),
 _NON_DISPONIBLE = "non disponible"
 _INDISPENSABLE = " (indispensable)"
 _SEPARATEUR_ELEMENTS = " ; "
+_GABARIT_PUCE = "- **{libelle}** : {valeur}"
+_GABARIT_TITRE = "## {titre}"
 
 _BLOC = re.compile(r'<li data-id-offre="(\w+)" class="result">(.*?)</li>', re.S)
 _TITRE = re.compile(r'<span class="media-heading-title">(.*?)</span>', re.S)
@@ -168,14 +170,20 @@ def _valeur(valeur: object) -> str:
 
 
 def _lignes(source: object, champs: tuple[tuple[str, str], ...]) -> list[str]:
-    """Lignes « Libellé : valeur » des champs non vides de `source` (un objet JSON) ; aucune si `source` n'en est pas un."""
+    """Puces Markdown `- **Libellé** : valeur` des champs non vides de `source` (un objet JSON) ; aucune si `source` n'en est pas un."""
     if not isinstance(source, dict):
         return []
-    return [f"{libelle} : {valeur}" for libelle, cle in champs if (valeur := _valeur(source.get(cle)))]
+    return [_puce(libelle, valeur) for libelle, cle in champs if (valeur := _valeur(source.get(cle)))]
+
+
+def _puce(libelle: str, valeur: str) -> str:
+    """Ligne Markdown « - **Libellé** : valeur » (la page des offres met le libellé en gras)."""
+    return _GABARIT_PUCE.format(libelle=libelle, valeur=valeur)
 
 
 def _section(titre: str, lignes: list[str]) -> str:
-    return f"{titre}\n" + "\n".join(lignes) if lignes else ""
+    """Section Markdown : titre `## …` puis une puce par ligne ; vide si aucune ligne."""
+    return _GABARIT_TITRE.format(titre=titre) + "\n" + "\n".join(lignes) if lignes else ""
 
 
 def _description(detail: dict) -> str:
@@ -184,7 +192,7 @@ def _description(detail: dict) -> str:
     experience = detail.get(_CLE_EXPERIENCE)
     profil = []
     if isinstance(experience, dict) and (duree := _texte_json(experience.get(_CLE_DUREE_EXPERIENCE))):
-        profil.append(f"Expérience : {duree}{_INDISPENSABLE if experience.get(_CLE_EXPERIENCE_INDISPENSABLE) is True else ''}")
+        profil.append(_puce("Expérience", f"{duree}{_INDISPENSABLE if experience.get(_CLE_EXPERIENCE_INDISPENSABLE) is True else ''}"))
     profil += _lignes(detail, _PROFIL_SOUHAITE)
     etablissement = detail.get(_CLE_ETABLISSEMENT)
     employeur = _lignes(etablissement, _EMPLOYEUR)

@@ -5,7 +5,7 @@ import hashlib
 from alertes_emploi.modele import Offre
 
 # Valeur par défaut de priorite_sites, écrite en dur à dessein : la déduire de ParametresGlobaux() rendrait les tests tautologiques.
-PRIORITE_SITES_PAR_DEFAUT = ("francetravail", "apec", "lesjeudis", "hellowork", "indeed", "linkedin", "glassdoor")
+PRIORITE_SITES_PAR_DEFAUT = ("francetravail", "lesjeudis", "hellowork", "indeed", "linkedin", "glassdoor")
 
 
 def offre_de_test(url, titre=None, societe="Acme", lieu="Lyon", description="Description de l'offre", source="indeed"):

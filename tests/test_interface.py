@@ -1076,7 +1076,7 @@ def test_post_global_priorite_des_sites_invalide_400_sans_effet(lancer_serveur, 
 
 def test_page_propose_une_case_par_site_dont_hellowork():
     page = serveur.construire_page([], ["a"])
-    for site in ("indeed", "linkedin", "glassdoor", "google", "hellowork", "francetravail", "apec", "lesjeudis"):
+    for site in ("indeed", "linkedin", "glassdoor", "google", "hellowork", "francetravail", "lesjeudis"):
         assert f'name="site" value="{site}"' in page
 
 

@@ -60,6 +60,7 @@ Transitions refusées : de Postulé vers Postuler ou Rejeté, de Rejeté vers Po
 ### Profils
 
 - La barre de profil propose « Nouveau profil », « Modifier » et « Supprimer », chacun écrivant ou retirant le profil dans la base
+- Dans le formulaire de profil, le champ Lieu propose les communes de la table locale [communes.json](src/alertes_emploi/sources/communes.json) dès deux caractères saisis. À l'enregistrement, un lieu connu de cette table est remplacé par le nom officiel de la commune ; un lieu inconnu est conservé tel que saisi
 - Le nom d'un profil se modifie : ses offres et sa date de recherche le suivent, et un nom déjà pris est refusé
 - La suppression efface le profil, ses offres et sa date de recherche, après une confirmation qui l'annonce
 - Quand un profil est modifié, ses offres déjà en base sont réévaluées tout de suite d'après les nouvelles règles, sans appel réseau : les écartées qui passent redeviennent « nouvelles », les retenues qui ne passent plus sont écartées

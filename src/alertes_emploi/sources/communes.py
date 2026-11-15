@@ -34,8 +34,8 @@ def _communes() -> tuple[dict[str, list[dict]], list[dict]]:
     return index, liste
 
 
-def code_insee(lieu: str) -> str | None:
-    """Code INSEE de la commune du lieu (texte avant la première virgule), ou None si introuvable.
+def _commune(lieu: str) -> dict | None:
+    """Commune de la table désignée par le lieu, ou None si introuvable.
 
     Un code postal dans le lieu départage les homonymes ; sans nom exploitable, il désigne à lui seul la commune la plus peuplée qui le porte.
     Parmi des homonymes sans code postal (ou sans correspondance), la commune la plus peuplée l'emporte.
@@ -53,4 +53,30 @@ def code_insee(lieu: str) -> str | None:
         candidates = []
     if not candidates:
         return None
-    return max(candidates, key=lambda commune: (commune.get(_CLE_POPULATION, 0), commune[_CLE_CODE]))[_CLE_CODE]
+    return max(candidates, key=lambda commune: (commune.get(_CLE_POPULATION, 0), commune[_CLE_CODE]))
+
+
+def code_insee(lieu: str) -> str | None:
+    """Code INSEE de la commune du lieu (texte avant la première virgule), ou None si introuvable."""
+    commune = _commune(lieu)
+    return commune[_CLE_CODE] if commune else None
+
+
+def nom_canonique(lieu: str) -> str:
+    """Nom de la commune de la table désignée par le lieu ; le lieu saisi, tel quel, si la table ne le connaît pas."""
+    commune = _commune(lieu)
+    return commune[_CLE_NOM] if commune else lieu
+
+
+def suggerer(debut: str, limite: int = 8) -> list[dict[str, str]]:
+    """Communes dont le nom commence par `debut` (insensible aux accents et à la casse), les plus peuplées d'abord : [{"nom", "code_postal"}].
+
+    Moins de deux caractères utiles ne donnent aucune suggestion.
+    """
+    prefixe = normaliser(debut)
+    if len(prefixe) < 2:
+        return []
+    index, _ = _communes()
+    trouvees = [commune for nom, communes in index.items() if nom.startswith(prefixe) for commune in communes]
+    trouvees.sort(key=lambda commune: (-commune.get(_CLE_POPULATION, 0), commune[_CLE_NOM]))
+    return [{"nom": c[_CLE_NOM], "code_postal": (c.get(_CLE_CODES_POSTAUX) or [""])[0]} for c in trouvees[:limite]]

@@ -727,6 +727,26 @@ def test_modifier_profil_200_reecrit_le_profil_en_base(lancer_serveur, base):
     assert _profil_en_base(base, "t").lieu == "Paris"
 
 
+def test_creer_profil_lieu_connu_enregistre_le_nom_officiel_de_la_commune(lancer_serveur, base):
+    port = lancer_serveur(_inutile)
+    assert _requete(port, "POST", "/profils/creer", _local(port), {"profil": _nouveau("v", lieu="  saint-etienne ")})[0] == 201
+    assert _profil_en_base(base, "v").lieu == "Saint-Étienne"
+
+
+def test_creer_profil_lieu_inconnu_est_conserve_tel_que_saisi(lancer_serveur, base):
+    port = lancer_serveur(_inutile)
+    assert _requete(port, "POST", "/profils/creer", _local(port), {"profil": _nouveau("v", lieu="Atlantide")})[0] == 201
+    assert _profil_en_base(base, "v").lieu == "Atlantide"
+
+
+def test_route_communes_propose_les_communes_par_prefixe(lancer_serveur):
+    port = lancer_serveur(_inutile)
+    statut, corps = _requete(port, "GET", "/communes?q=saint-eti")
+    assert statut == 200
+    assert "Saint-Étienne" in [c["nom"] for c in json.loads(corps)]
+    assert json.loads(_requete(port, "GET", "/communes?q=a")[1]) == []
+
+
 def test_modifier_profil_avec_nouveau_nom_renomme_le_profil_et_ses_offres(lancer_serveur, base):
     with Stockage(base) as stockage:
         stockage.enregistrer("t", [_offre_e("Poste t")])

@@ -1,6 +1,6 @@
 import pytest
 
-from alertes_emploi.sources.communes import code_insee, normaliser
+from alertes_emploi.sources.communes import code_insee, nom_canonique, normaliser, suggerer
 
 
 def test_normaliser():
@@ -35,6 +35,24 @@ def test_code_postal_departage_les_homonymes():
 
 def test_code_postal_seul():
     assert code_insee("13001") == "13055"
+
+
+def test_nom_canonique():
+    assert nom_canonique("saint-etienne") == "Saint-Étienne"
+    assert nom_canonique("Saint-Denis 93200") == "Saint-Denis"
+    assert nom_canonique("Atlantide") == "Atlantide"
+
+
+def test_suggerer_par_prefixe_les_plus_peuplees_d_abord():
+    noms = [c["nom"] for c in suggerer("marse")]
+    assert noms[0] == "Marseille"
+    assert all(normaliser(n).startswith("marse") for n in noms)
+    assert len(suggerer("saint", limite=5)) == 5
+    assert all(c["code_postal"] for c in suggerer("lyon"))
+
+
+def test_suggerer_exige_deux_caracteres():
+    assert suggerer("") == [] and suggerer("m") == []
 
 
 def test_lieu_introuvable_ou_vide():

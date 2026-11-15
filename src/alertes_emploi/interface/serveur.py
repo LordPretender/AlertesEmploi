@@ -11,7 +11,9 @@ from datetime import date, datetime, timedelta
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
+from alertes_emploi.sources.communes import nom_canonique, suggerer
 from alertes_emploi.profils.chargeur import ParametresGlobaux, Profil, ProfilInvalide
 from alertes_emploi import NOM_JOURNAL, raccourci
 from alertes_emploi.miseajour_jobspy import ErreurMiseAJour, Jobspy, version_valide
@@ -110,10 +112,19 @@ button.discret { border-color: transparent; background: transparent; color: var(
 .bascule input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .tableau { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); flex: 1; min-height: 0; overflow: auto; }
-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 62rem; }
-th, td { padding: .6rem .9rem; text-align: left; vertical-align: middle; }
-tbody.offre > tr:first-child > td:nth-child(n+6) { white-space: nowrap; }
-.coupe { display: inline-block; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+/* Colonnes à largeur fixe, sauf Titre qui prend le reste : jamais de défilement horizontal, le titre se replie sur peu de lignes. */
+table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
+th, td { padding: .6rem .7rem; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+th[data-col="profil"] { width: 7rem; }
+th[data-col="site"] { width: 6rem; }
+th[data-col="societe"] { width: 11rem; }
+th[data-col="lieu"] { width: 8.5rem; }
+th[data-col="vue"] { width: 10rem; }
+th[data-col="libelle"] { width: 8rem; }
+th.annonce { width: 6rem; }
+tbody.offre > tr:first-child > td:nth-child(6) { white-space: nowrap; }
+.coupe { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.logo + .coupe { max-width: calc(100% - 2.6rem); }
 a.ouvrir { white-space: nowrap; text-decoration: none; }
 a.ouvrir:hover { text-decoration: underline; }
 tbody.offre.ouverte > tr:first-child td, tbody.offre.ouverte > tr.detail td { background: var(--accent-doux); }
@@ -125,7 +136,7 @@ th[aria-sort="descending"]::after { content: "▼"; opacity: 1; color: var(--acc
 tbody.offre > tr:first-child td { border-top: 1px solid var(--bordure); }
 tbody.offre > tr:first-child:hover td { background: var(--surface-2); }
 td.titre { font-weight: 600; }
-table.maj { min-width: 0; }
+table.maj { table-layout: auto; }
 table.maj thead th { position: static; }
 table.maj td { border-top: 1px solid var(--bordure); }
 tbody.offre button { padding: .2rem .6rem; font-size: .82rem; }
@@ -178,7 +189,9 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 .rangee { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .8rem; }
 .suffixe { display: flex; align-items: center; gap: .5rem; color: var(--attenue); }
 .champ .suffixe input { flex: 1; width: auto; min-width: 0; }
-.sites { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sites { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sites .bascule span { padding: .35rem .7rem; }
+#dlg-profil { width: min(46rem, 94vw); max-width: min(46rem, 94vw); }
 .bascule span { cursor: pointer; }
 .bascule:hover input:not(:checked) + span { background: var(--surface-2); }
 .section-titre { margin-top: .4rem; padding-top: 1rem; border-top: 1px solid var(--bordure); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--attenue); }
@@ -243,7 +256,7 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 <table id="corps">
 <thead><tr>
 <th tabindex="0" aria-sort="none" data-col="titre">Titre</th><th tabindex="0" aria-sort="none" data-col="profil">Profil</th><th tabindex="0" aria-sort="none" data-col="site">Site</th><th tabindex="0" aria-sort="none" data-col="societe">Société</th><th tabindex="0" aria-sort="none" data-col="lieu">Lieu</th>
-<th tabindex="0" aria-sort="ascending" data-col="vue">Ajoutée le</th><th tabindex="0" aria-sort="none" data-col="libelle">Statut</th><th>Annonce</th>
+<th tabindex="0" aria-sort="ascending" data-col="vue">Ajoutée le</th><th tabindex="0" aria-sort="none" data-col="libelle">Statut</th><th class="annonce">Annonce</th>
 </tr></thead>
 __LIGNES__
 </table>
@@ -274,7 +287,7 @@ __LIGNES__
 <div class="champ"><label for="p-nom">Nom</label><input id="p-nom" required></div>
 <div class="section-titre">Recherche</div>
 <div class="champ"><label for="p-termes">Termes de recherche</label><textarea id="p-termes" rows="2" required></textarea><span class="aide">Séparés par des virgules.</span></div>
-<div class="champ"><label for="p-lieu">Lieu</label><input id="p-lieu" required></div>
+<div class="champ"><label for="p-lieu">Lieu</label><input id="p-lieu" list="p-lieu-liste" autocomplete="off" required><datalist id="p-lieu-liste"></datalist><span class="aide">Commencez à saisir : les communes connues sont proposées. Un lieu inconnu est conservé tel quel.</span></div>
 <div class="rangee">
 <div class="champ"><label for="p-rayon">Rayon</label><div class="suffixe"><input id="p-rayon" type="number" min="0"><span>km</span></div><span class="aide">0 = seulement la ville du lieu.</span></div>
 <div class="champ"><label for="p-contrat">Type de contrat</label><select id="p-contrat"><option value="">indifférent</option><option>fulltime</option><option>parttime</option><option>contract</option><option>internship</option></select></div>
@@ -636,6 +649,20 @@ champ("a-lancer").addEventListener("click", async () => {
 // Dernières recherches de tous les profils, dans une popup.
 champ("maj-dates").addEventListener("click", () => champ("dlg-maj").showModal());
 champ("m-fermer").addEventListener("click", () => champ("dlg-maj").close());
+
+// Suggestions de communes pour le lieu du profil : la dernière frappe l'emporte, les réponses périmées sont ignorées.
+let frappeLieu = 0;
+champ("p-lieu").addEventListener("input", async () => {
+  const numero = ++frappeLieu;
+  const debut = champ("p-lieu").value.trim();
+  if (debut.length < 2) { champ("p-lieu-liste").replaceChildren(); return; }
+  try {
+    const reponse = await fetch("/communes?q=" + encodeURIComponent(debut));
+    if (!reponse.ok || numero !== frappeLieu) return;
+    const options = (await reponse.json()).map(c => { const o = new Option(c.nom); o.label = c.code_postal; return o; });
+    champ("p-lieu-liste").replaceChildren(...options);
+  } catch (e) { /* suggestions indisponibles : la saisie libre reste possible */ }
+});
 
 champ("nouveau").addEventListener("click", () => ouvrirFormulaire(null));
 champ("modifier").addEventListener("click", () => ouvrirFormulaire(champ("f-profil").value));
@@ -1182,6 +1209,9 @@ class _Gestionnaire(BaseHTTPRequestHandler):
                 return
             installee, derniere = self.jobspy.versions()
             self._repondre_json(200, {"disponible": self.jobspy.disponible, "installee": installee, "derniere": derniere})
+        elif self.path.startswith("/communes?"):
+            debut = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
+            self._repondre_json(200, suggerer(debut))
         elif self.path == "/etat":
             self._repondre(200, json.dumps(self.etat.instantane()).encode("utf-8"), "application/json; charset=utf-8")
         elif self.path == "/journal":
@@ -1194,7 +1224,7 @@ class _Gestionnaire(BaseHTTPRequestHandler):
         origine = self.headers.get("Origin")
         return origine is None or origine in (f"http://127.0.0.1:{port_serveur}", f"http://localhost:{port_serveur}")
 
-    def _repondre_json(self, code: int, contenu: dict) -> None:
+    def _repondre_json(self, code: int, contenu: dict | list) -> None:
         self._repondre(code, json.dumps(contenu, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
 
     def _corps_json(self) -> dict | None:
@@ -1215,6 +1245,10 @@ class _Gestionnaire(BaseHTTPRequestHandler):
             self._repondre_json(400, {"erreur": "Requête illisible ou trop volumineuse."})
             return
         action = self.path.rsplit("/", 1)[1]
+        # Un lieu connu de la table des communes s'enregistre sous son nom officiel ; un lieu inconnu reste tel que saisi.
+        profil_saisi = corps.get("profil")
+        if isinstance(profil_saisi, dict) and isinstance(profil_saisi.get("lieu"), str):
+            profil_saisi["lieu"] = nom_canonique(profil_saisi["lieu"].strip())
         try:
             with Stockage(self.base) as stockage:
                 if action == _ACTION_CREER:

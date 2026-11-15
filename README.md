@@ -137,6 +137,17 @@ Deux offres sont des doublons quand elles sont dans la même ville et que leur s
 
 `-Simuler` n'écrit rien et affiche le nombre de lignes touchées. Sans lui, le script exige la sauvegarde `alertes.db.bak` à côté de la base (dossier de données). Détail : [nettoyage.py](src/alertes_emploi/nettoyage.py).
 
+### Suppression des offres d'une source
+
+Pour repartir de zéro sur un site (par exemple après un changement d'adaptateur), `scripts/supprimer-source.ps1` supprime de `alertes.db` toutes les offres de la source donnée, après une copie horodatée de la base (`alertes.db.avant-suppression-<source>-<date>`). Il vérifie ensuite que la source est à 0 et que les autres n'ont pas bougé :
+
+```
+& .\scripts\supprimer-source.ps1 -Source lesjeudis -Simuler
+& .\scripts\supprimer-source.ps1 -Source lesjeudis
+```
+
+`-Simuler` n'écrit ni ne sauvegarde rien et affiche le nombre d'offres par profil. Index de tous les scripts : [scripts/README.md](scripts/README.md).
+
 ### Priorité des sites
 
 Quand deux offres sont des doublons, celle du site le mieux classé est gardée ; à rang égal, la plus ancienne. L'ordre se règle dans le paramètre global `priorite_sites` (bouton « Paramètres globaux » du menu « Réglages »). Par défaut : `francetravail`, `lesjeudis`, `hellowork`, `indeed`, `linkedin`, `glassdoor` ; un site absent de la liste passe après ceux de la liste, et une liste vide revient à « la plus ancienne gagne ».

@@ -104,7 +104,8 @@ input.court { width: 5em; }
 .filtre { display: flex; flex-direction: column; gap: .15rem; flex: 1 1 12rem; max-width: 18rem; font-size: .75rem; color: var(--attenue); }
 .filtre input, .filtre select { width: 100%; font-size: 1rem; }
 button.discret { border-color: transparent; background: transparent; color: var(--attenue); }
-#compte { margin-left: auto; color: var(--attenue); font-size: .9rem; }
+.filtres { align-items: flex-end; }
+#compte { margin-left: auto; color: var(--attenue); font-size: .9rem; padding-bottom: .5rem; }
 .bascule { position: relative; }
 .bascule input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .bascule span { display: inline-block; padding: .4rem .85rem; border: 1px solid var(--bordure); border-radius: 999px; background: var(--surface); }
@@ -249,7 +250,7 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 <button id="supprimer" class="danger" type="button" disabled>Supprimer</button>
 </div>
 </section>
-<section class="carte barre">
+<section class="carte barre filtres">
 <label class="filtre">Recherche libre<input id="f-texte" type="search" placeholder="Titre, société, description…"></label>
 <label class="filtre">Société<input id="f-societe" type="search" placeholder="Société"></label>
 <label class="filtre">Lieu<input id="f-lieu" type="search" placeholder="Lieu"></label>

@@ -74,9 +74,12 @@ input.court { width: 5em; }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
-.menu .entrees { position: absolute; right: 0; z-index: 10; margin-top: .4rem; min-width: 18rem; background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre-forte); padding: .6rem; display: flex; flex-direction: column; align-items: stretch; gap: .5rem; }
-.menu .section { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--attenue); }
-.menu hr { width: 100%; margin: .1rem 0; border: none; border-top: 1px solid var(--bordure); }
+.menu .entrees { position: absolute; right: 0; z-index: 10; margin-top: .4rem; min-width: 18rem; background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre-forte); padding: .4rem; display: flex; flex-direction: column; align-items: stretch; gap: .1rem; }
+.menu .section { padding: .5rem .7rem .2rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--attenue); }
+.menu hr { width: 100%; margin: .3rem 0; border: none; border-top: 1px solid var(--bordure); }
+.menu .entrees button { width: 100%; border: none; background: transparent; text-align: left; padding: .5rem .7rem; border-radius: var(--rayon-petit); }
+.menu .entrees button:hover:not(:disabled) { background: var(--surface-2); }
+.menu .entrees button:disabled { opacity: .45; }
 
 .bandeau { position: sticky; top: .75rem; z-index: 20; display: flex; align-items: center; gap: .7rem; margin-bottom: var(--espace); padding: .7rem 1rem; border-radius: var(--rayon); box-shadow: var(--ombre); background: var(--accent-doux); border: 1px solid var(--accent); }
 .bandeau.ok { background: var(--succes-doux); border-color: var(--succes); }
@@ -91,7 +94,14 @@ input.court { width: 5em; }
 .carte { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: .9rem 1.1rem; margin-bottom: var(--espace); }
 .barre { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
 .espace { flex: 1; }
+.groupe { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
+.groupe.droite { margin-left: auto; padding-left: .9rem; border-left: 1px solid var(--bordure); gap: 1.2rem; }
+.groupe.droite .danger { margin-left: .5rem; }
 .aide { color: var(--attenue); font-size: .9rem; }
+.groupe .aide { font-size: .82rem; }
+.filtre { display: flex; flex-direction: column; gap: .15rem; flex: 1 1 12rem; max-width: 18rem; font-size: .75rem; color: var(--attenue); }
+.filtre input, .filtre select { width: 100%; font-size: 1rem; }
+button.discret { border-color: transparent; background: transparent; color: var(--attenue); }
 #compte { margin-left: auto; color: var(--attenue); font-size: .9rem; }
 .bascule { position: relative; }
 .bascule input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
@@ -101,7 +111,12 @@ input.court { width: 5em; }
 
 .tableau { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); flex: 1; min-height: 0; overflow: auto; }
 table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 62rem; }
-th, td { padding: .75rem .9rem; text-align: left; vertical-align: middle; }
+th, td { padding: .6rem .9rem; text-align: left; vertical-align: middle; }
+tbody.offre > tr:first-child > td:nth-child(n+6) { white-space: nowrap; }
+.coupe { display: inline-block; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+a.ouvrir { white-space: nowrap; text-decoration: none; }
+a.ouvrir:hover { text-decoration: underline; }
+tbody.offre.ouverte > tr:first-child td, tbody.offre.ouverte > tr.detail td { background: var(--accent-doux); }
 thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); border-bottom: 1px solid var(--bordure); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--attenue); white-space: nowrap; }
 th[data-col] { cursor: pointer; user-select: none; }
 th[data-col]::after { content: "↕"; margin-left: .35em; opacity: .35; }
@@ -125,13 +140,13 @@ tbody[data-statut="rejetee"] > tr:first-child td:not(:last-child) { opacity: .6;
 tbody[data-statut="rejetee"] .statut { background: var(--danger-doux); color: var(--danger); }
 tbody[data-statut="postulee"] .statut { background: var(--accent-doux); color: var(--accent); }
 tbody[data-statut="a_postuler"] .statut { background: var(--succes-doux); color: var(--succes); }
-.vide { text-align: center; color: var(--attenue); padding: 2rem 1rem; }
+.vide { text-align: center; color: var(--attenue); padding: 3rem 1rem; }
 
 td.description { padding: 0 .9rem .9rem; }
 .panneau { background: var(--surface-2); border-radius: var(--rayon-petit); padding: 1rem 1.2rem; }
 .description h4 { margin: .8rem 0 .2rem; }
-.description p, .description ul { margin: .3rem 0; }
-.description .actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--bordure); }
+.description p, .description ul { margin: .3rem 0; max-width: 70ch; }
+.description .actions { position: sticky; top: 2.4rem; z-index: 1; display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: -.2rem 0 .8rem; padding: .5rem 0 .7rem; background: var(--surface-2); border-bottom: 1px solid var(--bordure); }
 a.bouton-lien { display: inline-block; padding: .2rem .6rem; font-size: .82rem; border: 1px solid var(--bordure); border-radius: var(--rayon-petit); background: var(--surface); color: var(--texte); text-decoration: none; }
 a.bouton-lien:hover { background: var(--surface-2); }
 .actions label { font-size: .82rem; color: var(--attenue); }
@@ -189,7 +204,7 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 <button id="globaux" type="button">Paramètres globaux</button>
 <hr>
 <span class="section">Suivi</span>
-<button id="maj-dates" type="button">Historique des recherches</button>
+<button id="maj-dates" type="button">Dernières recherches</button>
 <button id="journal" type="button">Journal</button>
 <hr>
 <span class="section">Application</span>
@@ -204,21 +219,24 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 <button id="b-fermer" class="fermer" type="button" aria-label="Fermer le message">&times;</button>
 </div>
 <section class="carte barre">
+<div class="groupe">
 <label>Profil <select id="f-profil"><option value="">Tous</option>__OPTIONS__</select></label>
 <button id="maj" class="primaire" type="button" disabled>Rechercher</button>
 <span id="aide-maj" class="aide">Choisissez un profil pour lancer une recherche.</span>
 <span id="date-maj" class="aide"></span>
-<span class="espace"></span>
+</div>
+<div class="groupe droite">
 <button id="nouveau" type="button">Nouveau profil</button>
 <button id="modifier" type="button" disabled>Modifier</button>
 <button id="supprimer" class="danger" type="button" disabled>Supprimer</button>
+</div>
 </section>
 <section class="carte barre">
-<input id="f-texte" type="search" placeholder="Recherche libre" aria-label="Recherche libre">
-<input id="f-societe" type="search" placeholder="Société" aria-label="Société">
-<input id="f-lieu" type="search" placeholder="Lieu" aria-label="Lieu">
-<label>Statut <select id="f-statut"><option value="">Tous sauf rejetées</option><option value="nouvelle">Nouvelles</option><option value="a_postuler">Postuler</option><option value="postulee">Postulé</option><option value="rejetee">Rejeté</option></select></label>
-<button id="reinit" type="button">Réinitialiser les filtres</button>
+<label class="filtre">Recherche libre<input id="f-texte" type="search" placeholder="Titre, société, description…"></label>
+<label class="filtre">Société<input id="f-societe" type="search" placeholder="Société"></label>
+<label class="filtre">Lieu<input id="f-lieu" type="search" placeholder="Lieu"></label>
+<label class="filtre">Statut<select id="f-statut"><option value="">Tous sauf rejetées</option><option value="nouvelle">Nouvelles</option><option value="a_postuler">À postuler</option><option value="postulee">Postulées</option><option value="rejetee">Rejetées</option></select></label>
+<button id="reinit" class="discret" type="button">Réinitialiser les filtres</button>
 <span id="compte"></span>
 </section>
 <div class="tableau">
@@ -229,7 +247,7 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 </tr></thead>
 __LIGNES__
 </table>
-<p id="vide" class="vide" hidden>Aucune offre ne correspond.</p>
+<p id="vide" class="vide" hidden>Aucune offre ne correspond.<br>Modifiez les filtres ou lancez une recherche.</p>
 </div>
 <dialog id="dlg-globaux" class="formulaire">
 <form id="form-globaux">
@@ -429,7 +447,7 @@ function actualiserBouton() {
 const SITES = Array.from(document.querySelectorAll('input[name="site"]')).map(c => c.value);
 const PAR_DEFAUT = {nom: "", termes_recherche: [], lieu: "", rayon_km: 50, sites: [...SITES], type_contrat: null, nombre_resultats: 15, exiger_termes: true, mots_exclus: [], villes_exclues: []};
 let nomModifie = null;
-const liste = texte => texte.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+const liste = texte => texte.split(/[,\\n]/).map(s => s.trim()).filter(Boolean);
 
 function ouvrirFormulaire(nom) {
   nomModifie = nom;
@@ -506,6 +524,13 @@ corps.addEventListener("click", evenement => {
   if (!bouton) return;
   const detail = bouton.closest("tbody.offre").querySelector("tr.detail");
   detail.hidden = bouton.dataset.action === "masquer" ? true : !detail.hidden;
+  bouton.closest("tbody.offre").classList.toggle("ouverte", !detail.hidden);
+});
+
+// Échap referme le menu Réglages (les popups se ferment d'elles-mêmes).
+document.addEventListener("keydown", evenement => {
+  if (evenement.key !== "Escape") return;
+  for (const menu of document.querySelectorAll("details.menu[open]")) menu.removeAttribute("open");
 });
 
 // Un menu se referme au clic en dehors de lui et après le choix d'une entrée (bouton ou lien).
@@ -780,11 +805,13 @@ fetch("/etat").then(r => r.json()).then(e => { if (e.en_cours) { enCours = true;
 """
 
 
-def _lien(url: str, classe: str = "") -> str:
+def _lien(url: str, classe: str = "", texte: str = "Voir l'annonce", etiquette: str = "") -> str:
     # Seuls les schémas http et https deviennent cliquables ; tout le reste est affiché en texte.
+    # `texte` est inséré sans échappement : il doit rester une constante du code, jamais une donnée externe.
     if url.lower().startswith(("http://", "https://")):
         attribut_classe = f' class="{classe}"' if classe else ""
-        return f'<a{attribut_classe} href="{escape(url)}" target="_blank" rel="noopener noreferrer">Voir l\'annonce</a>'
+        attribut_etiquette = f' aria-label="{escape(etiquette)}"' if etiquette else ""
+        return f'<a{attribut_classe} href="{escape(url)}" target="_blank" rel="noopener noreferrer"{attribut_etiquette}>{texte}</a>'
     return escape(url)
 
 
@@ -829,6 +856,7 @@ def _markdown(texte: str) -> str:
 
 
 _NB_COLONNES = 8 # colonnes du tableau, largeur de la ligne de description
+_ETIQUETTE_OUVRIR = "Ouvrir l'annonce"  # aria-label du lien court de la colonne Annonce
 
 
 def _libelle_statut(stockee: OffreStockee) -> str:
@@ -874,13 +902,15 @@ def _ligne(stockee: OffreStockee) -> str:
     return (
         f'<tbody class="offre" {attributs}><tr>'
         f'<td class="titre"><button type="button" class="titre-lien" data-action="voir">{escape(offre.titre)}</button>{pastille}</td>'
-        f"<td>{escape(stockee.profil)}</td><td>{escape(offre.source)}</td><td>{logo}{escape(offre.societe)}</td><td>{escape(offre.lieu)}</td>"
-        f'<td>{escape(premiere)}</td><td><span class="statut">{escape(libelle)}</span></td><td>{_lien(offre.url)}</td></tr>'
-        f'<tr class="detail" hidden><td class="description" colspan="{_NB_COLONNES}"><div class="panneau">{_markdown(offre.description)}'
+        f"<td>{escape(stockee.profil)}</td><td>{escape(offre.source)}</td>"
+        f'<td>{logo}<span class="coupe" title="{escape(offre.societe)}">{escape(offre.societe)}</span></td>'
+        f'<td><span class="coupe" title="{escape(offre.lieu)}">{escape(offre.lieu)}</span></td>'
+        f'<td>{escape(premiere)}</td><td><span class="statut">{escape(libelle)}</span></td><td>{_lien(offre.url, "ouvrir", "Ouvrir ↗", _ETIQUETTE_OUVRIR)}</td></tr>'
+        f'<tr class="detail" hidden><td class="description" colspan="{_NB_COLONNES}"><div class="panneau">'
         f'<div class="actions">{_lien(offre.url, "bouton-lien")}<button type="button" data-action="masquer">Masquer</button>'
         '<label>Statut <select data-action="statut" aria-label="Statut de l\'offre">'
         '<option value="vue">Vue</option><option value="a_postuler">Postuler</option>'
-        '<option value="postulee">Postulé</option><option value="rejetee">Rejeté</option></select></label></div></div></td></tr></tbody>'
+        f'<option value="postulee">Postulé</option><option value="rejetee">Rejeté</option></select></label></div>{_markdown(offre.description)}</div></td></tr></tbody>'
     )
 
 

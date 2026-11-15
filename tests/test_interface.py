@@ -84,7 +84,8 @@ def test_url_javascript_non_cliquable():
 
 def test_url_https_cliquable_dans_un_nouvel_onglet():
     page = serveur.construire_page([_stockee(url="https://exemple.fr/1")], ["p"])
-    assert '<a href="https://exemple.fr/1" target="_blank" rel="noopener noreferrer">Voir l\'annonce</a>' in page
+    assert '<a class="bouton-lien" href="https://exemple.fr/1" target="_blank" rel="noopener noreferrer">Voir l\'annonce</a>' in page
+    assert '<a class="ouvrir" href="https://exemple.fr/1" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l&#x27;annonce">Ouvrir ↗</a>' in page
 
 
 def test_pastille_nouvelle_seulement_pour_une_offre_nouvelle():
@@ -140,7 +141,8 @@ def test_entete_regroupe_profils_reglages_journal_et_mises_a_jour():
     barre_profil = avant_scripts.split('<section class="carte barre">')[1].split("</section>")[0]
     assert barre_profil.index('id="nouveau"') < barre_profil.index('id="modifier"')
     assert 'id="supprimer"' in barre_profil and 'id="maj"' in barre_profil
-    dialogue = avant_scripts.split('<dialog id="dlg-maj">')[1].split("</dialog>")[0]
+    assert '<button id="maj-dates" type="button">Dernières recherches</button>' in entete
+    dialogue = avant_scripts.split('<dialog id="dlg-maj" class="formulaire">')[1].split("</dialog>")[0]
     assert "Dernières recherches" in dialogue and '<div id="dates">' in dialogue and "<tr><td>a</td><td>01/11/2026 14:05</td></tr>" in dialogue
     assert 'id="bandeau"' in avant_scripts and 'id="etat"' not in page
 
@@ -151,7 +153,7 @@ def test_page_propose_la_popup_recherche_auto_et_vise_le_profil_le_plus_ancien()
                                    globaux=ParametresGlobaux(recherche_auto_demarrage=False, delai_recherche_auto_minutes=120))
     entete, reste = page.split("</header>")
     assert '<button id="auto" type="button">Recherche auto</button>' in entete
-    dialogue = reste.split('<dialog id="dlg-auto">')[1].split("</dialog>")[0]
+    dialogue = reste.split('<dialog id="dlg-auto" class="formulaire">')[1].split("</dialog>")[0]
     assert 'id="a-demarrage"' in dialogue and 'id="a-delai"' in dialogue and 'min="5" max="1440"' in dialogue and 'id="a-lancer"' in dialogue
     assert '<script id="auto-data" type="application/json">{"profil": "b", "date": "01/11/2026 14:05", "derniere": ""}</script>' in page
     assert '"recherche_auto_demarrage": false' in page and '"delai_recherche_auto_minutes": 120' in page
@@ -254,7 +256,7 @@ def test_journal_ne_renvoie_que_les_200_dernieres_lignes(lancer_serveur, tmp_pat
 def test_page_contient_le_bouton_et_la_popup_du_journal(lancer_serveur):
     port = lancer_serveur(lambda profil, base: ResultatRecherche([], 0, 0))
     page = _requete(port, "GET", "/")[1]
-    assert b'<button id="journal"' in page and b'<dialog id="dlg-journal">' in page
+    assert b'<button id="journal"' in page and b'<dialog id="dlg-journal" class="formulaire">' in page
     assert b'href="/journal"' not in page
 
 
@@ -1076,8 +1078,22 @@ def test_post_global_priorite_des_sites_invalide_400_sans_effet(lancer_serveur, 
 
 def test_page_propose_une_case_par_site_dont_hellowork():
     page = serveur.construire_page([], ["a"])
+    conteneur = page.split('id="p-sites"')[1].split("</div>")[0]
     for site in ("indeed", "linkedin", "glassdoor", "google", "hellowork", "francetravail", "lesjeudis"):
-        assert f'name="site" value="{site}"' in page
+        assert f'name="site" value="{site}"' in conteneur
+    assert "sites: [...SITES]" in page
+
+
+def test_le_javascript_de_la_page_ne_contient_pas_de_retour_a_la_ligne_dans_une_expression_reguliere():
+    # La page est une chaîne Python non brute : un « \n » non doublé y devient un vrai saut de ligne et casse tout le script.
+    page = serveur.construire_page([], ["a"])
+    assert "texte.split(/[,\\n]/)" in page and "texte.split(/[,\n]/)" not in page
+
+
+def test_chaque_popup_porte_la_classe_formulaire():
+    page = serveur.construire_page([], ["a"])
+    for identifiant in ("globaux", "profil", "suppr", "journal", "jobspy", "auto", "maj"):
+        assert f'<dialog id="dlg-{identifiant}" class="formulaire">' in page
 
 
 def test_page_grise_l_entree_raccourci_sans_lanceur():

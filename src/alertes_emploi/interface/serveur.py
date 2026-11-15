@@ -187,6 +187,11 @@ dialog.formulaire[open] { display: flex; flex-direction: column; }
 .champ textarea { font: inherit; color: var(--texte); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon-petit); padding: .45rem .65rem; resize: vertical; min-height: 4.2rem; }
 .champ .aide { font-size: .82rem; }
 .rangee { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .8rem; }
+.lieu-saisie { position: relative; }
+.suggestions { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + .2rem); margin: 0; padding: .25rem; list-style: none; max-height: 14rem; overflow-y: auto; background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon-petit); box-shadow: var(--ombre); }
+.suggestions li { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem .6rem; border-radius: var(--rayon-petit); cursor: pointer; }
+.suggestions li span { color: var(--attenue); font-size: .85rem; }
+.suggestions li.active, .suggestions li:hover { background: var(--accent-doux); }
 .suffixe { display: flex; align-items: center; gap: .5rem; color: var(--attenue); }
 .champ .suffixe input { flex: 1; width: auto; min-width: 0; }
 .sites { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -287,7 +292,7 @@ __LIGNES__
 <div class="champ"><label for="p-nom">Nom</label><input id="p-nom" required></div>
 <div class="section-titre">Recherche</div>
 <div class="champ"><label for="p-termes">Termes de recherche</label><textarea id="p-termes" rows="2" required></textarea><span class="aide">Séparés par des virgules.</span></div>
-<div class="champ"><label for="p-lieu">Lieu</label><input id="p-lieu" list="p-lieu-liste" autocomplete="off" required><datalist id="p-lieu-liste"></datalist><span class="aide">Commencez à saisir : les communes connues sont proposées. Un lieu inconnu est conservé tel quel.</span></div>
+<div class="champ"><label for="p-lieu">Lieu</label><div class="lieu-saisie"><input id="p-lieu" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="p-lieu-liste" required><ul id="p-lieu-liste" class="suggestions" role="listbox" hidden></ul></div><span class="aide">Commencez à saisir : les communes connues sont proposées. Un lieu inconnu est conservé tel quel.</span></div>
 <div class="rangee">
 <div class="champ"><label for="p-rayon">Rayon</label><div class="suffixe"><input id="p-rayon" type="number" min="0"><span>km</span></div><span class="aide">0 = seulement la ville du lieu.</span></div>
 <div class="champ"><label for="p-contrat">Type de contrat</label><select id="p-contrat"><option value="">indifférent</option><option>fulltime</option><option>parttime</option><option>contract</option><option>internship</option></select></div>
@@ -652,17 +657,58 @@ champ("m-fermer").addEventListener("click", () => champ("dlg-maj").close());
 
 // Suggestions de communes pour le lieu du profil : la dernière frappe l'emporte, les réponses périmées sont ignorées.
 let frappeLieu = 0;
+let suggestionActive = -1;
+function fermerSuggestions() {
+  frappeLieu++;
+  suggestionActive = -1;
+  champ("p-lieu-liste").hidden = true;
+  champ("p-lieu-liste").replaceChildren();
+  champ("p-lieu").setAttribute("aria-expanded", "false");
+}
+function activerSuggestion(indice) {
+  const items = [...champ("p-lieu-liste").children];
+  if (!items.length) return;
+  suggestionActive = (indice + items.length) % items.length;
+  items.forEach((li, i) => li.classList.toggle("active", i === suggestionActive));
+  items[suggestionActive].scrollIntoView({block: "nearest"});
+}
+function choisirSuggestion(nom) {
+  champ("p-lieu").value = nom;
+  fermerSuggestions();
+}
 champ("p-lieu").addEventListener("input", async () => {
   const numero = ++frappeLieu;
   const debut = champ("p-lieu").value.trim();
-  if (debut.length < 2) { champ("p-lieu-liste").replaceChildren(); return; }
+  if (debut.length < 2) { fermerSuggestions(); return; }
   try {
     const reponse = await fetch("/communes?q=" + encodeURIComponent(debut));
     if (!reponse.ok || numero !== frappeLieu) return;
-    const options = (await reponse.json()).map(c => { const o = new Option(c.nom); o.label = c.code_postal; return o; });
-    champ("p-lieu-liste").replaceChildren(...options);
+    const communes = await reponse.json();
+    const liste = champ("p-lieu-liste");
+    suggestionActive = -1;
+    liste.replaceChildren(...communes.map(c => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.append(c.nom);
+      const cp = document.createElement("span");
+      cp.textContent = c.code_postal;
+      li.append(cp);
+      li.addEventListener("mousedown", e => { e.preventDefault(); choisirSuggestion(c.nom); });
+      return li;
+    }));
+    liste.hidden = !communes.length;
+    champ("p-lieu").setAttribute("aria-expanded", String(communes.length > 0));
   } catch (e) { /* suggestions indisponibles : la saisie libre reste possible */ }
 });
+champ("p-lieu").addEventListener("keydown", e => {
+  const liste = champ("p-lieu-liste");
+  if (liste.hidden) return;
+  if (e.key === "ArrowDown") { e.preventDefault(); activerSuggestion(suggestionActive + 1); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); activerSuggestion(suggestionActive - 1); }
+  else if (e.key === "Enter" && suggestionActive >= 0) { e.preventDefault(); choisirSuggestion(liste.children[suggestionActive].firstChild.textContent); }
+  else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fermerSuggestions(); }
+});
+champ("p-lieu").addEventListener("blur", fermerSuggestions);
 
 champ("nouveau").addEventListener("click", () => ouvrirFormulaire(null));
 champ("modifier").addEventListener("click", () => ouvrirFormulaire(champ("f-profil").value));

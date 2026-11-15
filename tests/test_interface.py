@@ -992,6 +992,13 @@ def test_postuler_offre_inconnue_404_corps_invalide_400_origine_etrangere_403(la
     assert _requete(port, "POST", "/offres/postuler", "http://autre.example", {"profil": "t", "cle": "x"})[0] == 403
 
 
+def test_page_propose_une_liste_de_suggestions_maison_pour_le_lieu_du_profil():
+    page = serveur.construire_page([], ["a"])
+    assert "<datalist" not in page and 'list="p-lieu-liste"' not in page
+    assert '<ul id="p-lieu-liste" class="suggestions" role="listbox" hidden></ul>' in page
+    assert "choisirSuggestion" in page and "fermerSuggestions" in page
+
+
 def test_page_propose_le_champ_villes_exclues():
     page = serveur.construire_page([], ["a"])
     assert 'id="p-villes"' in page and "villes_exclues" in page

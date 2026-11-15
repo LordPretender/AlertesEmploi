@@ -143,8 +143,34 @@ dialog p { margin: .6rem 0; }
 dialog label { display: inline-block; }
 dialog .actions-dlg { display: flex; gap: .6rem; margin-top: 1rem; }
 .erreur { color: var(--danger); }
-#dlg-journal { max-width: 94vw; }
-#j-texte { width: 88vw; max-width: 100%; max-height: 60vh; overflow: auto; white-space: pre-wrap; background: var(--surface-2); border-radius: var(--rayon-petit); padding: .8rem; font-size: .85em; }
+
+/* Popups à structure titre / corps / pied : le corps défile, le pied reste visible. */
+dialog.formulaire { width: min(36rem, 92vw); max-height: 90vh; padding: 0; overflow: hidden; }
+dialog.formulaire[open] { display: flex; flex-direction: column; }
+.formulaire form { display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: inherit; }
+.dlg-entete { flex: none; padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--bordure); }
+.dlg-entete h3 { margin: 0; }
+.dlg-entete .aide { margin: .3rem 0 0; }
+.dlg-corps { flex: 1; min-height: 0; overflow: auto; padding: 1.2rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.dlg-corps p { margin: 0; }
+.dlg-pied { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: .6rem; padding: .9rem 1.5rem; border-top: 1px solid var(--bordure); background: var(--surface-2); }
+.dlg-pied .erreur { flex: 1; margin: 0; }
+.champ { display: flex; flex-direction: column; gap: .3rem; }
+.champ > label { font-weight: 600; font-size: .9rem; }
+.champ input:not([type="checkbox"]), .champ select, .champ textarea { width: 100%; }
+.champ textarea { font: inherit; color: var(--texte); background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon-petit); padding: .45rem .65rem; resize: vertical; min-height: 4.2rem; }
+.champ .aide { font-size: .82rem; }
+.rangee { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .8rem; }
+.suffixe { display: flex; align-items: center; gap: .5rem; color: var(--attenue); }
+.champ .suffixe input { flex: 1; width: auto; min-width: 0; }
+.sites { display: flex; flex-wrap: wrap; gap: .4rem; }
+.bascule span { cursor: pointer; }
+.bascule:hover input:not(:checked) + span { background: var(--surface-2); }
+.section-titre { margin-top: .4rem; padding-top: 1rem; border-top: 1px solid var(--bordure); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--attenue); }
+.champ > label.interrupteur { font-weight: normal; font-size: 1rem; }
+.interrupteur { display: flex; align-items: center; gap: .5rem; }
+#dlg-journal { width: 94vw; max-width: 94vw; }
+#j-texte { margin: 0; max-height: 60vh; overflow: auto; white-space: pre-wrap; background: var(--surface-2); border-radius: var(--rayon-petit); padding: .8rem; font-size: .85em; }
 
 @media (max-width: 700px) {
   body { padding: .8rem; }
@@ -205,74 +231,108 @@ __LIGNES__
 </table>
 <p id="vide" class="vide" hidden>Aucune offre ne correspond.</p>
 </div>
-<dialog id="dlg-globaux">
+<dialog id="dlg-globaux" class="formulaire">
 <form id="form-globaux">
+<div class="dlg-entete">
 <h3>Paramètres globaux</h3>
-<p>Exclusions appliquées à tous les profils, en plus des leurs. L'enregistrement réévalue les offres de tous les profils.</p>
-<p><label>Mots exclus (virgules) <input id="g-exclus" size="40"></label></p>
-<p><label>Villes exclues (virgules) <input id="g-villes" size="40"></label></p>
-<p><label>Priorité des sites pour les doublons (virgules, le premier est préféré) <input id="g-priorite" size="40"></label></p>
-<p>Quand deux offres sont des doublons, celle du site le plus à gauche est gardée.</p>
+<p class="aide">Exclusions appliquées à tous les profils, en plus des leurs. L'enregistrement réévalue les offres de tous les profils.</p>
+</div>
+<div class="dlg-corps">
+<div class="champ"><label for="g-exclus">Mots exclus</label><textarea id="g-exclus" rows="3"></textarea><span class="aide">Séparés par des virgules. Les espaces autour des signes sont ignorés (Bac+5 = Bac +5).</span></div>
+<div class="champ"><label for="g-villes">Villes exclues</label><textarea id="g-villes" rows="2"></textarea><span class="aide">Séparées par des virgules.</span></div>
+<div class="champ"><label for="g-priorite">Priorité des sites pour les doublons</label><textarea id="g-priorite" rows="2"></textarea><span class="aide">Séparés par des virgules, le premier est préféré : quand deux offres sont des doublons, celle du site le plus à gauche est gardée.</span></div>
+</div>
+<div class="dlg-pied">
 <p id="g-erreur" class="erreur"></p>
-<div class="actions-dlg"><button class="primaire" type="submit">Enregistrer</button><button id="g-annuler" type="button">Annuler</button></div>
+<button id="g-annuler" type="button">Annuler</button>
+<button class="primaire" type="submit">Enregistrer</button>
+</div>
 </form>
 </dialog>
-<dialog id="dlg-profil">
+<dialog id="dlg-profil" class="formulaire">
 <form id="form-profil">
-<h3 id="dlg-titre"></h3>
-<p><label>Nom <input id="p-nom" required></label></p>
-<p><label>Termes de recherche (séparés par des virgules) <input id="p-termes" required size="40"></label></p>
-<p><label>Lieu <input id="p-lieu" required></label> <label>Rayon (km, 0 = seulement la ville du lieu) <input id="p-rayon" class="court" type="number" min="0"></label></p>
-<p>Sites : <label><input type="checkbox" name="site" value="indeed"> indeed</label>
-<label><input type="checkbox" name="site" value="linkedin"> linkedin</label>
-<label><input type="checkbox" name="site" value="glassdoor"> glassdoor</label>
-<label><input type="checkbox" name="site" value="google"> google</label>
-<label><input type="checkbox" name="site" value="hellowork"> hellowork</label>
-<label><input type="checkbox" name="site" value="francetravail"> francetravail</label>
-<label><input type="checkbox" name="site" value="lesjeudis"> lesjeudis</label></p>
-<p><label>Type de contrat <select id="p-contrat"><option value="">indifférent</option><option>fulltime</option><option>parttime</option><option>contract</option><option>internship</option></select></label>
-<label>Nombre de résultats <input id="p-nb" class="court" type="number" min="1"></label></p>
-<p><label><input id="p-exiger" type="checkbox"> Exiger un terme de recherche dans l'offre</label></p>
-<p><label>Mots exclus (virgules) <input id="p-exclus" size="40"></label></p>
-<p><label>Villes exclues (virgules) <input id="p-villes" size="40"></label></p>
+<div class="dlg-entete"><h3 id="dlg-titre"></h3></div>
+<div class="dlg-corps">
+<div class="champ"><label for="p-nom">Nom</label><input id="p-nom" required></div>
+<div class="section-titre">Recherche</div>
+<div class="champ"><label for="p-termes">Termes de recherche</label><textarea id="p-termes" rows="2" required></textarea><span class="aide">Séparés par des virgules.</span></div>
+<div class="champ"><label for="p-lieu">Lieu</label><input id="p-lieu" required></div>
+<div class="rangee">
+<div class="champ"><label for="p-rayon">Rayon</label><div class="suffixe"><input id="p-rayon" type="number" min="0"><span>km</span></div><span class="aide">0 = seulement la ville du lieu.</span></div>
+<div class="champ"><label for="p-contrat">Type de contrat</label><select id="p-contrat"><option value="">indifférent</option><option>fulltime</option><option>parttime</option><option>contract</option><option>internship</option></select></div>
+<div class="champ"><label for="p-nb">Nombre de résultats</label><input id="p-nb" type="number" min="1"></div>
+</div>
+<div class="champ"><label>Sites</label>
+<div class="sites" id="p-sites">
+<label class="bascule"><input type="checkbox" name="site" value="indeed"><span>indeed</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="linkedin"><span>linkedin</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="glassdoor"><span>glassdoor</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="google"><span>google</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="hellowork"><span>hellowork</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="francetravail"><span>francetravail</span></label>
+<label class="bascule"><input type="checkbox" name="site" value="lesjeudis"><span>lesjeudis</span></label>
+</div>
+<span class="aide">Triés selon la priorité des paramètres globaux.</span></div>
+<div class="section-titre">Filtres</div>
+<div class="champ"><label class="interrupteur"><input id="p-exiger" type="checkbox"> Exiger un terme de recherche dans l'offre</label></div>
+<div class="champ"><label for="p-exclus">Mots exclus</label><textarea id="p-exclus" rows="2"></textarea><span class="aide">Séparés par des virgules.</span></div>
+<div class="champ"><label for="p-villes">Villes exclues</label><textarea id="p-villes" rows="2"></textarea><span class="aide">Séparées par des virgules.</span></div>
+</div>
+<div class="dlg-pied">
 <p id="p-erreur" class="erreur"></p>
-<div class="actions-dlg"><button class="primaire" type="submit">Enregistrer</button><button id="p-annuler" type="button">Annuler</button></div>
+<button id="p-annuler" type="button">Annuler</button>
+<button class="primaire" type="submit">Enregistrer</button>
+</div>
 </form>
 </dialog>
-<dialog id="dlg-suppr">
-<h3>Supprimer le profil</h3>
+<dialog id="dlg-suppr" class="formulaire">
+<div class="dlg-entete"><h3>Supprimer le profil</h3></div>
+<div class="dlg-corps">
 <p id="s-texte"></p>
 <p>Les offres de ce profil seront effacées définitivement.</p>
-<div class="actions-dlg"><button id="s-confirmer" class="danger" type="button">Supprimer</button><button id="s-annuler" type="button">Annuler</button></div>
+</div>
+<div class="dlg-pied">
+<button id="s-annuler" type="button">Annuler</button>
+<button id="s-confirmer" class="danger" type="button">Supprimer</button>
+</div>
 </dialog>
-<dialog id="dlg-journal">
-<h3>Journal</h3>
-<pre id="j-texte"></pre>
-<div class="actions-dlg"><button id="j-fermer" type="button">Fermer</button></div>
+<dialog id="dlg-journal" class="formulaire">
+<div class="dlg-entete"><h3>Journal</h3></div>
+<div class="dlg-corps"><pre id="j-texte"></pre></div>
+<div class="dlg-pied"><button id="j-fermer" type="button">Fermer</button></div>
 </dialog>
-<dialog id="dlg-jobspy">
-<h3>Mettre à jour JobSpy</h3>
+<dialog id="dlg-jobspy" class="formulaire">
+<div class="dlg-entete"><h3>Mettre à jour JobSpy</h3></div>
+<div class="dlg-corps">
 <p id="jp-texte"></p>
 <p>L'installation prend quelques instants ; en cas d'échec, la version actuelle est restaurée. Il faudra ensuite relancer l'application.</p>
-<div class="actions-dlg"><button id="jp-installer" class="primaire" type="button" hidden></button><button id="jp-fermer" type="button">Fermer</button></div>
+</div>
+<div class="dlg-pied">
+<button id="jp-fermer" type="button">Fermer</button>
+<button id="jp-installer" class="primaire" type="button" hidden></button>
+</div>
 </dialog>
-<dialog id="dlg-auto">
+<dialog id="dlg-auto" class="formulaire">
 <form id="form-auto">
-<h3>Recherche auto</h3>
-<p><label><input id="a-demarrage" type="checkbox"> Lancer une recherche au démarrage de l'application</label></p>
-<p><label>Délai entre deux recherches (minutes, de 5 à 1440) <input id="a-delai" class="court" type="number" min="5" max="1440" required></label></p>
-<p>Au démarrage, la recherche ne se lance que si aucun profil n'a été recherché depuis ce délai ; elle vise le profil recherché le moins récemment.</p>
-<p><label>Date de la dernière recherche <input id="a-date" type="datetime-local"></label></p>
-<p class="aide">Mise à jour par chaque recherche réussie. Au prochain démarrage, la recherche se lance si cette date dépasse le délai, ou si le champ est vide.</p>
+<div class="dlg-entete"><h3>Recherche auto</h3></div>
+<div class="dlg-corps">
+<div class="champ"><label class="interrupteur"><input id="a-demarrage" type="checkbox"> Lancer une recherche au démarrage de l'application</label></div>
+<div class="champ"><label for="a-delai">Délai entre deux recherches</label><div class="suffixe"><input id="a-delai" type="number" min="5" max="1440" required><span>min</span></div><span class="aide">De 5 à 1440 minutes. Au démarrage, la recherche ne se lance que si aucun profil n'a été recherché depuis ce délai ; elle vise le profil recherché le moins récemment.</span></div>
+<div class="champ"><label for="a-date">Date de la dernière recherche</label><input id="a-date" type="datetime-local"><span class="aide">Mise à jour par chaque recherche réussie. Au prochain démarrage, la recherche se lance si cette date dépasse le délai, ou si le champ est vide.</span></div>
 <p id="a-aide" class="aide"></p>
+</div>
+<div class="dlg-pied">
 <p id="a-erreur" class="erreur"></p>
-<div class="actions-dlg"><button class="primaire" type="submit">Enregistrer</button><button id="a-lancer" type="button">Lancer maintenant</button><button id="a-annuler" type="button">Fermer</button></div>
+<button id="a-annuler" type="button">Fermer</button>
+<button id="a-lancer" type="button">Lancer maintenant</button>
+<button class="primaire" type="submit">Enregistrer</button>
+</div>
 </form>
 </dialog>
-<dialog id="dlg-maj">
-<h3>Dernières recherches</h3>
-<div id="dates">__DATES__</div>
-<div class="actions-dlg"><button id="m-fermer" type="button">Fermer</button></div>
+<dialog id="dlg-maj" class="formulaire">
+<div class="dlg-entete"><h3>Dernières recherches</h3></div>
+<div class="dlg-corps"><div id="dates">__DATES__</div></div>
+<div class="dlg-pied"><button id="m-fermer" type="button">Fermer</button></div>
 </dialog>
 <script id="profils-data" type="application/json">__PROFILS__</script>
 <script id="globaux-data" type="application/json">__GLOBAUX__</script>
@@ -367,9 +427,9 @@ function actualiserBouton() {
 
 // Gestion des profils : formulaire de création et de modification, suppression avec confirmation.
 const SITES = Array.from(document.querySelectorAll('input[name="site"]')).map(c => c.value);
-const PAR_DEFAUT = {nom: "", termes_recherche: [], lieu: "", rayon_km: 50, sites: ["indeed"], type_contrat: null, nombre_resultats: 15, exiger_termes: true, mots_exclus: [], villes_exclues: []};
+const PAR_DEFAUT = {nom: "", termes_recherche: [], lieu: "", rayon_km: 50, sites: [...SITES], type_contrat: null, nombre_resultats: 15, exiger_termes: true, mots_exclus: [], villes_exclues: []};
 let nomModifie = null;
-const liste = texte => texte.split(",").map(s => s.trim()).filter(Boolean);
+const liste = texte => texte.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
 
 function ouvrirFormulaire(nom) {
   nomModifie = nom;
@@ -379,6 +439,9 @@ function ouvrirFormulaire(nom) {
   champ("p-termes").value = d.termes_recherche.join(", ");
   champ("p-lieu").value = d.lieu;
   champ("p-rayon").value = d.rayon_km;
+  // Pastilles triées selon la priorité des paramètres globaux ; les sites absents de cette liste suivent, dans leur ordre d'origine (tri stable).
+  const rang = pastille => { const i = globaux.priorite_sites.indexOf(pastille.querySelector("input").value); return i === -1 ? globaux.priorite_sites.length : i; };
+  for (const pastille of Array.from(champ("p-sites").children).sort((a, b) => rang(a) - rang(b))) champ("p-sites").appendChild(pastille);
   for (const c of document.querySelectorAll('input[name="site"]')) c.checked = d.sites.includes(c.value);
   const contrat = champ("p-contrat");
   if (d.type_contrat && !Array.from(contrat.options).some(o => o.value === d.type_contrat)) contrat.add(new Option(d.type_contrat));
@@ -389,6 +452,7 @@ function ouvrirFormulaire(nom) {
   champ("p-villes").value = d.villes_exclues.join(", ");
   champ("p-erreur").textContent = "";
   champ("dlg-profil").showModal();
+  champ("p-nom").focus();
 }
 
 async function envoyer(url, corps) {
@@ -517,6 +581,7 @@ champ("auto").addEventListener("click", () => {
   champ("a-lancer").disabled = enCours || cibleAuto.profil === null;
   champ("a-erreur").textContent = "";
   champ("dlg-auto").showModal();
+  champ("a-delai").focus();
 });
 champ("a-annuler").addEventListener("click", () => champ("dlg-auto").close());
 champ("form-auto").addEventListener("submit", async evenement => {
@@ -590,6 +655,7 @@ champ("globaux").addEventListener("click", () => {
   champ("g-priorite").value = globaux.priorite_sites.join(", ");
   champ("g-erreur").textContent = "";
   champ("dlg-globaux").showModal();
+  champ("g-exclus").focus();
 });
 champ("g-annuler").addEventListener("click", () => champ("dlg-globaux").close());
 champ("form-globaux").addEventListener("submit", async evenement => {

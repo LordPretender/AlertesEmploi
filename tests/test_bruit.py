@@ -63,6 +63,22 @@ def test_expression_de_plusieurs_mots():
     assert filtrer_bruit([offre], mots_exclus=["chef de projet"])[0] == []
 
 
+def test_espaces_autour_d_un_signe_facultatifs():
+    avec_espace, sans_espace = _offre("Chef", "Bac +5 exigé"), _offre("Chef", "Bac+5 exigé")
+    assert filtrer_bruit([avec_espace], mots_exclus=["Bac+5"])[1] == [(avec_espace, "exclu : Bac+5")]
+    assert filtrer_bruit([sans_espace], mots_exclus=["Bac +5"])[1] == [(sans_espace, "exclu : Bac +5")]
+
+
+def test_espace_entre_deux_mots_reste_obligatoire():
+    assert filtrer_bruit([_offre("Chef", "DataScientist")], mots_exclus=["Data Scientist"])[1] == []
+    assert filtrer_bruit([_offre("Chef", "Data  Scientist")], mots_exclus=["Data Scientist"])[0] == []
+
+
+def test_mot_sans_caractere_apres_normalisation_ne_correspond_a_rien():
+    offre = _offre("Dev Python")
+    assert filtrer_bruit([offre], mots_exclus=["́"])[0] == [offre]
+
+
 def test_mots_vides_ignores():
     offre = _offre("Dev")
     assert filtrer_bruit([offre], termes_requis=[" "], mots_exclus=[""]) == ([offre], [])

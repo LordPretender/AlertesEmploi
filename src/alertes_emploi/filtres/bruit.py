@@ -18,7 +18,15 @@ def _normaliser_pour_motif(texte: str) -> str:
 
 def _motif(mot: str) -> re.Pattern[str]:
     # Mot entier : ni lettre ni chiffre accolé de part et d'autre.
-    return re.compile(rf"(?<!\w){re.escape(_normaliser_pour_motif(mot.strip()))}(?!\w)")
+    # Les espaces autour d'un signe sont facultatifs (« bac+5 » = « bac +5 ») ; entre deux mots, l'espace reste obligatoire.
+    jetons = re.findall(r"\w+|[^\w\s]", _normaliser_pour_motif(mot.strip()))
+    if not jetons:
+        return re.compile(r"(?!)")  # mot vide après normalisation (accents seuls) : ne correspond à rien
+    motif = re.escape(jetons[0])
+    for precedent, jeton in zip(jetons, jetons[1:]):
+        separateur = r"\s+" if precedent[0].isalnum() and jeton[0].isalnum() else r"\s*"
+        motif += separateur + re.escape(jeton)
+    return re.compile(rf"(?<!\w){motif}(?!\w)")
 
 
 def filtrer_bruit(

@@ -32,6 +32,8 @@ Au premier lancement (ou si `requirements.txt` change), `preparer.py` crée un v
 
 Sources du lanceur : [modele-build](scripts/modele-build).
 
+Release GitHub : la pièce jointe est un zip du build contenant seulement `Alertes emploi.pyw` et `systeme/`. Le dossier `donnees/` n'y entre jamais (base et journal personnels). Au premier lancement, `donnees/` se crée de lui-même.
+
 ## L'application
 
 - **Fenêtre** : l'interface s'ouvre dans une fenêtre Windows (pywebview, WebView2 requis) qui héberge un serveur local et l'arrête à sa fermeture. Si le port est déjà pris, elle se connecte au serveur existant. Détail : [fenetre.py](src/alertes_emploi/interface/fenetre.py).
